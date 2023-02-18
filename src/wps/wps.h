@@ -352,6 +352,9 @@ struct wps_registrar_config {
 	 */
 	int (*lookup_pskfile_cb)(void *ctx, const u8 *mac_addr, const u8 **psk);
 
+	int (*lookup_lua_ext_cred_cb)(void *ctx, const u8 *mac_addr,
+			struct wps_credential *cred);
+
 	/**
 	 * cb_ctx: Higher layer context data for Registrar callbacks
 	 */

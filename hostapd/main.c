@@ -687,6 +687,9 @@ int main(int argc, char *argv[])
 	if (!interfaces.dpp)
 		return -1;
 #endif /* CONFIG_DPP */
+#ifdef CONFIG_LUA
+	interfaces.lua_ext = lua_ext_create();
+#endif /* CONFIG_LUA */
 
 	for (;;) {
 		c = getopt(argc, argv, "b:Bde:f:hi:KP:sSTtu:vg:G:q");
@@ -922,6 +925,9 @@ int main(int argc, char *argv[])
 #ifdef CONFIG_DPP
 	dpp_global_deinit(interfaces.dpp);
 #endif /* CONFIG_DPP */
+#ifdef CONFIG_LUA
+	lua_ext_free(interfaces.lua_ext);
+#endif /* CONFIG_LUA */
 
 	if (interfaces.eloop_initialized)
 		eloop_cancel_timeout(hostapd_periodic, &interfaces, NULL);

@@ -3195,6 +3195,14 @@ static int hostapd_ctrl_iface_driver_cmd(struct hostapd_data *hapd, char *cmd,
 }
 #endif /* ANDROID */
 
+#ifdef CONFIG_LUA
+static int hostapd_global_ctrl_iface_lua_eval(struct hapd_interfaces *interfaces,
+					const char *cmd, char *buf, size_t buflen)
+{
+	struct lua_ext *lua_ext = interfaces->lua_ext;
+	return lua_ext_eval(lua_ext, cmd, buf, buflen);
+}
+#endif /* CONFIG_LUA */
 
 static int hostapd_ctrl_iface_receive_process(struct hostapd_data *hapd,
 					      char *buf, char *reply,
@@ -4641,6 +4649,11 @@ static void hostapd_global_ctrl_iface_receive(int sock, void *eloop_ctx,
 			interfaces, buf + 10, reply, sizeof(buffer));
 	} else if (os_strcmp(buf, "TERMINATE") == 0) {
 		eloop_terminate();
+#ifdef CONFIG_LUA
+	} else if (os_strncmp(buf, "LUA_EVAL ", 9) == 0) {
+		reply_len = hostapd_global_ctrl_iface_lua_eval(interfaces, buf + 9, reply,
+							  reply_size);
+#endif /* CONFIG_LUA */
 	} else {
 		wpa_printf(MSG_DEBUG, "Unrecognized global ctrl_iface command "
 			   "ignored");

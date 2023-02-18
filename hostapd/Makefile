@@ -1284,6 +1284,13 @@ ifdef CONFIG_NO_TKIP
 CFLAGS += -DCONFIG_NO_TKIP
 endif
 
+ifdef CONFIG_LUA
+CFLAGS += -DCONFIG_LUA
+CFLAGS += -I/usr/include/lua5.3
+LIBS += -llua5.3
+OBJS += ../src/lua_ext/lua_ext.o
+endif
+
 $(DESTDIR)$(BINDIR)/%: %
 	install -D $(<) $(@)
 
