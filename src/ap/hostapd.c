@@ -56,7 +56,6 @@
 #include "airtime_policy.h"
 #include "wpa_auth_kay.h"
 
-
 static int hostapd_flush_old_stations(struct hostapd_data *hapd, u16 reason);
 #ifdef CONFIG_WEP
 static int hostapd_setup_encryption(char *iface, struct hostapd_data *hapd);
@@ -2500,6 +2499,7 @@ static void hostapd_bss_deinit(struct hostapd_data *hapd)
 		hapd->rad_attr_db = NULL;
 	}
 #endif /* CONFIG_SQLITE */
+
 	hostapd_cleanup(hapd);
 }
 

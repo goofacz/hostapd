@@ -18,6 +18,8 @@
 #include "utils/list.h"
 #include "ap_config.h"
 #include "drivers/driver.h"
+#include "lua_ext/lua_ext.h"
+
 
 #define OCE_STA_CFON_ENABLED(hapd) \
 	((hapd->conf->oce & OCE_STA_CFON) && \
@@ -93,6 +95,9 @@ struct hapd_interfaces {
        unsigned char ctrl_iface_cookie[CTRL_IFACE_COOKIE_LEN];
 #endif /* CONFIG_CTRL_IFACE_UDP */
 
+#ifdef CONFIG_LUA
+    struct lua_ext *lua_ext;
+#endif /* CONFIG_LUA */
 };
 
 enum hostapd_chan_status {

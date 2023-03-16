@@ -20,6 +20,7 @@
 #include "wps/wps_defs.h"
 #include "wps/wps_dev_attr.h"
 #include "wps/wps_attr_parse.h"
+#include "crypto/sha1.h"
 #include "hostapd.h"
 #include "ap_config.h"
 #include "ap_drv_ops.h"
@@ -307,6 +308,44 @@ static int hostapd_wps_lookup_pskfile_cb(void *ctx, const u8 *mac_addr,
 
 	return 1;
 }
+
+
+#ifdef CONFIG_LUA
+static int hostapd_wps_lookup_lua_ext_cred_cb(void *ctx, const u8 *mac_addr,
+					 struct wps_credential *cred)
+{
+	struct hostapd_data *hapd = ctx;
+	struct lua_ext *lua_ext = hapd->iface->interfaces->lua_ext;
+	const char *bss_name = hapd->conf->iface;
+	char hex[65];
+	char *psk_str = NULL;
+	int res = 0;
+	int len = 0;
+	int ok = 0;
+	u8 psk[PMK_LEN];
+
+	res = lua_ext_wps_lookup_cred(lua_ext, bss_name, mac_addr, &psk_str);
+	if (!res)
+		return 0;
+
+	len = os_strlen(psk_str);
+	if (len == 2 * PMK_LEN &&
+		hexstr2bin(psk_str, psk, PMK_LEN) == 0)
+			ok = 1;
+	else if (len >= 8 && len < 64 &&
+		pbkdf2_sha1(psk_str, cred->ssid, cred->ssid_len, 4096,
+					psk, PMK_LEN) == 0)
+			ok = 1;
+
+    wpa_snprintf_hex(hex, sizeof(hex), psk, PMK_LEN);
+    os_memcpy(cred->key, hex, PMK_LEN * 2);
+    cred->key_len = PMK_LEN * 2;
+
+	os_free(psk_str);
+
+	return ok;
+}
+#endif /* CONFIG_LUA */
 
 
 static void wps_reload_config(void *eloop_data, void *user_ctx)
@@ -1301,6 +1340,9 @@ int hostapd_init_wps(struct hostapd_data *hapd,
 	cfg.reg_success_cb = hostapd_wps_reg_success_cb;
 	cfg.enrollee_seen_cb = hostapd_wps_enrollee_seen_cb;
 	cfg.lookup_pskfile_cb = hostapd_wps_lookup_pskfile_cb;
+#ifdef CONFIG_LUA
+	cfg.lookup_lua_ext_cred_cb = hostapd_wps_lookup_lua_ext_cred_cb,
+#endif /* CONFIG_LUA */
 	cfg.cb_ctx = hapd;
 	cfg.skip_cred_build = conf->skip_cred_build;
 	cfg.extra_cred = conf->extra_cred;

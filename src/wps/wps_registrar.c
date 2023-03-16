@@ -161,6 +161,10 @@ struct wps_registrar {
 				 u16 dev_password_id, u8 request_type,
 				 const char *dev_name);
 	int (*lookup_pskfile_cb)(void *ctx, const u8 *mac_addr, const u8 **psk);
+#ifdef CONFIG_LUA
+	int (*lookup_lua_ext_cred_cb)(void *ctx, const u8 *mac_addr,
+			struct wps_credential *cred);
+#endif /* CONFIG_LUA */
 	void *cb_ctx;
 
 	struct dl_list pins;
@@ -683,6 +687,9 @@ wps_registrar_init(struct wps_context *wps,
 	reg->set_sel_reg_cb = cfg->set_sel_reg_cb;
 	reg->enrollee_seen_cb = cfg->enrollee_seen_cb;
 	reg->lookup_pskfile_cb = cfg->lookup_pskfile_cb;
+#ifdef CONFIG_LUA
+	reg->lookup_lua_ext_cred_cb = cfg->lookup_lua_ext_cred_cb;
+#endif /* CONFIG_LUA */
 	reg->cb_ctx = cfg->cb_ctx;
 	reg->skip_cred_build = cfg->skip_cred_build;
 	if (cfg->extra_cred) {
@@ -1300,6 +1307,18 @@ static int wps_cp_lookup_pskfile(struct wps_registrar *reg, const u8 *mac_addr,
 }
 
 
+#ifdef CONFIG_LUA
+static int wps_cb_lookup_lua_ext_creds(struct wps_registrar *reg, const u8 *mac_addr,
+				 struct wps_credential *cred)
+{
+	if (!reg->lookup_lua_ext_cred_cb)
+		return 0;
+
+	return reg->lookup_lua_ext_cred_cb(reg->cb_ctx, mac_addr, cred);
+}
+#endif /* CONFIG_LUA */
+
+
 static int wps_set_ie(struct wps_registrar *reg)
 {
 	struct wpabuf *beacon;
@@ -1741,6 +1760,10 @@ int wps_build_cred(struct wps_data *wps, struct wpabuf *msg)
 				      wps->new_psk, wps->new_psk_len);
 		os_memcpy(wps->cred.key, wps->new_psk, wps->new_psk_len);
 		wps->cred.key_len = wps->new_psk_len;
+#if CONFIG_LUA
+	} else if (wps_cb_lookup_lua_ext_creds(reg, wps->mac_addr_e, &wps->cred)) {
+		wpa_printf(MSG_DEBUG, "WPS: Use credentials from Lua ext");
+#endif /* CONFIG_LUA */
 	} else if (wps_cp_lookup_pskfile(reg, wps->mac_addr_e, &pskfile_psk)) {
 		wpa_hexdump_key(MSG_DEBUG, "WPS: Use PSK from wpa_psk_file",
 				pskfile_psk, PMK_LEN);
